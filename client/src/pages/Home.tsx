@@ -22,85 +22,79 @@ export default function Home() {
         // Audio playback failed
       });
     }
-        <div className="w-full max-w-[700px] sm:max-w-[900px] space-y-8">
-          <Tilt tiltMaxAngleX={profile.effects.tiltMaxAngle} tiltMaxAngleY={profile.effects.tiltMaxAngle} perspective={1000} scale={1.01} transitionSpeed={2000} gyroscope={true} className="w-full">
-            <DiscordWidget config={profile.discord} spotifyConfig={profile.spotify} />
-          </Tilt>
-          {/* Spotify Playlist Widget */}
-          <Tilt tiltMaxAngleX={profile.effects.tiltMaxAngle} tiltMaxAngleY={profile.effects.tiltMaxAngle} perspective={1000} scale={1.01} transitionSpeed={2000} gyroscope={true} className="w-full">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-panel rounded-[3rem] overflow-hidden bg-black/30 backdrop-blur-2xl border border-white/10 shadow-xl"
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#121212] text-white gap-4">
+        <h2 className="text-xl font-bold text-red-500">Failed to load profile</h2>
+      </div>
+    );
+  }
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 },
+  };
+
+  const useDiscordAvatar = profile.avatar.useDiscord && lanyard?.discord_user;
+  const avatarSrc = useDiscordAvatar 
+    ? `https://cdn.discordapp.com/avatars/${lanyard.discord_user.id}/${lanyard.discord_user.avatar}.webp?size=256`
+    : profile.avatar.src;
+  
+  const decorationUrl = useDiscordAvatar && profile.discord.showDecoration && lanyard.discord_user.avatar_decoration_data
+    ? `https://cdn.discordapp.com/avatar-decoration-presets/${lanyard.discord_user.avatar_decoration_data.asset}.png`
+    : null;
+
+  const bioTags = profile.bio.split(" ");
+
+  return (
+    <>
+      <CustomCursor config={profile.cursor} />
+      <Background config={profile.background} effects={profile.effects} theme={profile.theme} />
+      <AudioPlayer ref={audioRef} config={profile.audio} />
+
+      <main className="min-h-screen py-8 px-4 flex flex-col items-center justify-start relative z-10 overflow-y-auto gap-4" onClick={handleProfileClick}>
+        
+        {/* Profile UI Content */}
+        <div className="flex flex-col items-center">
+            {/* Main Profile Card */}
+            <Tilt
+              tiltMaxAngleX={profile.effects.tiltMaxAngle}
+              tiltMaxAngleY={profile.effects.tiltMaxAngle}
+              perspective={1000}
+              scale={1.03}
+              transitionSpeed={2000}
+              gyroscope={true}
+              className="w-full max-w-[400px] sm:max-w-[420px]"
             >
-              <iframe 
-                src="https://open.spotify.com/embed/playlist/7tiPEUSHxjSiJ2C5H5UFEn" 
-                width="100%" 
-                height="160" 
-                frameBorder="0" 
-                allowFullScreen 
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                className="rounded-[2rem] border-0"
-                style={{ margin: 0, padding: 0 }}
-              />
-            </motion.div>
-          </Tilt>
-          {/* Server Widget Mockup */}
-          <Tilt tiltMaxAngleX={profile.effects.tiltMaxAngle} tiltMaxAngleY={profile.effects.tiltMaxAngle} perspective={1000} scale={1.01} transitionSpeed={2000} gyroscope={true} className="w-full">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-panel rounded-[3rem] p-16 flex items-center justify-between bg-[#1a1a1a]/30 backdrop-blur-2xl border border-white/10 shadow-xl"
-            >
-              <div className="flex items-center gap-10">
-                <div className="w-32 h-32 rounded-xl overflow-hidden shadow-lg bg-[#2b2d31] flex items-center justify-center">
-                  {profile.discord.serverIcon ? (
-                    <img 
-                      src={profile.discord.serverIcon}
-                      alt="Server Icon"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#313338] flex items-center justify-center">
-                      <span className="font-black text-[16px] text-center leading-tight text-white/50 uppercase px-1">No Server</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-2xl">BeyondTheBanters</h3>
-                  <div className="flex items-center gap-4 mt-0.5">
-                    <span className="flex items-center gap-1 text-[18px] font-bold text-white/40">
-                      <div className="w-1 h-1 rounded-full bg-[#23a55a]" /> 1.4k Online
-                    </span>
-                    <span className="flex items-center gap-1 text-[18px] font-bold text-white/40">
-                      <div className="w-1 h-1 rounded-full bg-white/10" /> 16.41k Members
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <a 
-                href="https://discord.gg/banters"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-12 py-5 rounded-full bg-[#5865f2] hover:bg-[#4752c4] text-[22px] font-bold text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10 flex items-center justify-center"
-              >
-                Join Server
-              </a>
-            </motion.div>
-          </Tilt>
-        </div>
+              <motion.div
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="glass-card rounded-[2rem] w-full relative overflow-hidden bg-[#1a1a1a]/60 backdrop-blur-3xl border border-white/10 shadow-2xl"
               >
                 {/* Banner */}
                 <div className="h-28 w-full relative">
                   <img 
                     src={profile.banner || "/assets/banner.jpg"} 
-                    className="w-full h-full object-cover brightness-75" 
+                    className="w-full h-full object-cover brightness-50" 
                     alt="Banner"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1a1a1a]" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1a1a1a]/80" />
                 </div>
 
                 <div className="px-5 pb-5 -mt-10 relative z-10">
@@ -177,72 +171,100 @@ export default function Home() {
           </motion.div>
         </Tilt>
 
-        {/* Stacked Widgets */}
-        <div className="w-full max-w-[420px] sm:max-w-[480px] space-y-4">
-          <DiscordWidget config={profile.discord} spotifyConfig={profile.spotify} />
-          
-          {/* Spotify Playlist Widget */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-panel rounded-[1.5rem] overflow-hidden bg-black/40 backdrop-blur-2xl border border-white/10 shadow-xl"
+        {/* Stacked Widgets with Tilt */}
+        <div className="w-full max-w-[400px] sm:max-w-[420px] space-y-3 mt-4">
+          <Tilt
+            tiltMaxAngleX={profile.effects.tiltMaxAngle}
+            tiltMaxAngleY={profile.effects.tiltMaxAngle}
+            perspective={1000}
+            scale={1.03}
+            transitionSpeed={2000}
+            gyroscope={true}
+            className="w-full"
           >
-            <iframe 
-              src="https://open.spotify.com/embed/playlist/7tiPEUSHxjSiJ2C5H5UFEn" 
-              width="100%" 
-              height="80" 
-              frameBorder="0" 
-              allowFullScreen 
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              className="rounded-[1.25rem] border-0"
-              style={{ margin: 0, padding: 0 }}
-            />
-          </motion.div>
-          
-          {/* Server Widget Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-panel rounded-[1.5rem] p-6 flex items-center justify-between bg-[#1a1a1a]/40 backdrop-blur-2xl border border-white/10 shadow-xl"
+            <DiscordWidget config={profile.discord} spotifyConfig={profile.spotify} />
+          </Tilt>
+          <Tilt
+            tiltMaxAngleX={profile.effects.tiltMaxAngle}
+            tiltMaxAngleY={profile.effects.tiltMaxAngle}
+            perspective={1000}
+            scale={1.03}
+            transitionSpeed={2000}
+            gyroscope={true}
+            className="w-full"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-[#2b2d31] flex items-center justify-center">
-                {profile.discord.serverIcon ? (
-                  <img 
-                    src={profile.discord.serverIcon}
-                    alt="Server Icon"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#313338] flex items-center justify-center">
-                    <span className="font-black text-[8px] text-center leading-tight text-white/50 uppercase px-1">No Server</span>
+            {/* Spotify Playlist Widget */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-panel rounded-[1.25rem] overflow-hidden bg-black/60 backdrop-blur-xl border border-white/10 shadow-xl"
+            >
+              <iframe 
+                src="https://open.spotify.com/embed/playlist/7tiPEUSHxjSiJ2C5H5UFEn" 
+                width="100%" 
+                height="80" 
+                frameBorder="0" 
+                allowFullScreen 
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                className="rounded-[1.25rem] border-0"
+                style={{ margin: 0, padding: 0 }}
+              />
+            </motion.div>
+          </Tilt>
+          <Tilt
+            tiltMaxAngleX={profile.effects.tiltMaxAngle}
+            tiltMaxAngleY={profile.effects.tiltMaxAngle}
+            perspective={1000}
+            scale={1.03}
+            transitionSpeed={2000}
+            gyroscope={true}
+            className="w-full"
+          >
+            {/* Server Widget Mockup */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-panel rounded-[1.25rem] p-4 flex items-center justify-between bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/5 shadow-xl"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-[#2b2d31] flex items-center justify-center">
+                  {profile.discord.serverIcon ? (
+                    <img 
+                      src={profile.discord.serverIcon}
+                      alt="Server Icon"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#313338] flex items-center justify-center">
+                      <span className="font-black text-[8px] text-center leading-tight text-white/50 uppercase px-1">No Server</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">BeyondTheBanters</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
+                      <div className="w-1 h-1 rounded-full bg-[#23a55a]" /> 1.4k Online
+                    </span>
+                    <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
+                      <div className="w-1 h-1 rounded-full bg-white/10" /> 16.41k Members
+                    </span>
                   </div>
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-sm">BeyondTheBanters</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
-                    <div className="w-1 h-1 rounded-full bg-[#23a55a]" /> 1.4k Online
-                  </span>
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
-                    <div className="w-1 h-1 rounded-full bg-white/10" /> 16.41k Members
-                  </span>
                 </div>
               </div>
-            </div>
-            <a 
-              href="https://discord.gg/banters"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-1.5 rounded-full bg-[#5865f2] hover:bg-[#4752c4] text-[10px] font-bold text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10 flex items-center justify-center"
-            >
-              Join Server
-            </a>
-          </motion.div>
+              <a 
+                href="https://discord.gg/banters"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-1.5 rounded-full bg-[#5865f2] hover:bg-[#4752c4] text-[10px] font-bold text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10 flex items-center justify-center"
+              >
+                Join Server
+              </a>
+            </motion.div>
+          </Tilt>
         </div>
       </div>
       </main>

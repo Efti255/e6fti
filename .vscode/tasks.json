@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Copy attached_assets to public/assets",
+			"type": "shell",
+			"command": "xcopy /Y /I /S \"attached_assets\" \"client/public/assets\"",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
