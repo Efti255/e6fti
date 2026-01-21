@@ -16,52 +16,54 @@ const statusColors = {
 };
 
 export function DiscordWidget({ config, spotifyConfig }: DiscordWidgetProps) {
+  const safeSpotifyConfig = spotifyConfig || { enabled: false, showInDiscordStatus: false };
   const { data, status } = useLanyard({ userId: config.userId });
 
   if (status !== "connected" || !data) return null;
 
-  const { discord_user, discord_status, activities, spotify, listening_to_spotify } = data;
+  const { discord_user, discord_status, activities: rawActivities, spotify, listening_to_spotify } = data;
+  const activities = Array.isArray(rawActivities) ? rawActivities : [];
   
-  const showSpotify = spotifyConfig.showInDiscordStatus && (listening_to_spotify || activities.some(a => a.type === 2));
+  const showSpotify = safeSpotifyConfig.showInDiscordStatus && (listening_to_spotify || activities.some(a => a.type === 2));
   const spotifyActivity = activities.find(a => a.type === 2) || (listening_to_spotify ? spotify : null);
 
   const gameActivity = config.showActivity 
     ? activities.find(a => a.type !== 2 && a.type !== 4)
     : null;
 
-  const decorationUrl = discord_user.avatar_decoration_data 
+  const decorationUrl = (discord_user && typeof discord_user.avatar_decoration_data === 'object' && discord_user.avatar_decoration_data && 'asset' in discord_user.avatar_decoration_data)
     ? `https://cdn.discordapp.com/avatar-decoration-presets/${discord_user.avatar_decoration_data.asset}.png`
     : null;
 
   return (
     <div className="w-full">
-      {config.showStatus && (
+      {/* Discord Widget Main Card */}
+      {config.showStatus && discord_user && discord_user.id && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="glass-panel rounded-[1.25rem] p-3 flex items-center justify-between bg-black/60 backdrop-blur-xl border border-white/10 relative overflow-hidden"
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Avatar & Decoration */}
-            <div className="relative shrink-0">
-              <div className="relative w-12 h-12">
-                <div className="relative w-full h-full">
+            {/* Avatar, Decoration, and Status in a Row */}
+            <div className="flex items-center gap-2 relative shrink-0">
+                <div className="relative w-12 h-12">
                   <img 
                     src={`https://cdn.discordapp.com/avatars/${discord_user.id}/${discord_user.avatar}.webp?size=128`} 
                     alt={discord_user.username}
                     className="w-full h-full rounded-full bg-secondary object-cover relative z-10"
                   />
+                  {/* Overlay decoration on avatar */}
                   {config.showDecoration && decorationUrl && (
                     <img 
                       src={decorationUrl}
                       alt="Decoration"
-                      className="absolute top-1/3 left-1/3 w-full h-full rounded-full z-20 pointer-events-none transform -translate-x-1/3 -translate-y-1/3 border-[0px] border-transparent"
+                      className="absolute top-0 left-0 w-12 h-12 rounded-full z-20 pointer-events-none border-0"
                       style={{ boxSizing: 'border-box' }}
                     />
                   )}
-                  <div className={`absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full border-2 border-[#121212] z-20 ${statusColors[discord_status]}`} />
+                  <div className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border-2 border-[#121212] z-30 ${statusColors[discord_status]}`} />
                 </div>
-              </div>
             </div>
 
             <div className="min-w-0 flex-1">
@@ -79,18 +81,70 @@ export function DiscordWidget({ config, spotifyConfig }: DiscordWidgetProps) {
                 </div>
               </div>
 
-              {/* Spotify Text Section */}
+              {/* Spotify Text Section as Card Row */}
               {showSpotify && spotifyActivity && (
-                <div className="flex flex-col">
-                  <p className="text-xs font-medium text-white/90 leading-tight">
-                    <span className="font-bold">Listening to</span> <span className="text-white/60">{spotifyActivity.song || spotifyActivity.details}</span>
-                  </p>
-                  <p className="text-[11px] text-white/60 truncate italic leading-tight mt-0.5">
-                    {spotifyActivity.artist || spotifyActivity.state}
-                  </p>
-                </div>
+                // If this is a Spotify object (from Lanyard's spotify property)
+                'album_art_url' in spotifyActivity ? (
+                  <div className="mt-3 glass-panel rounded-2xl p-4 flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10">
+                    <div className="shrink-0 relative">
+                      <img
+                        src={spotifyActivity.album_art_url}
+                        alt="Album Art"
+                        className="w-12 h-12 rounded-lg shadow-lg object-cover border border-white/5"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Music size={14} className="text-green-400" />
+                        <span className="text-[10px] uppercase font-bold text-green-400 tracking-wider">
+                          Listening
+                        </span>
+                      </div>
+                      <p className="font-semibold text-sm text-white truncate leading-tight">{spotifyActivity.song}</p>
+                      <p className="text-xs text-white/60 truncate italic">{spotifyActivity.artist}</p>
+                    </div>
+                  </div>
+                ) : (
+                  // Otherwise, it's a Discord activity object
+                  <div className="mt-3 glass-panel rounded-2xl p-4 flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10">
+                    <div className="shrink-0 relative">
+                      <img
+                        src={
+                          spotifyActivity.assets?.large_image
+                            ? (spotifyActivity.assets.large_image.startsWith('spotify:')
+                                ? `https://i.scdn.co/image/${spotifyActivity.assets.large_image.split(':')[1]}`
+                                : spotifyActivity.assets.large_image.startsWith('mp:external')
+                                  ? spotifyActivity.assets.large_image.replace('mp:external/', 'https://media.discordapp.net/external/')
+                                  : spotifyActivity.application_id
+                                    ? `https://cdn.discordapp.com/app-assets/${spotifyActivity.application_id}/${spotifyActivity.assets.large_image}.png`
+                                    : 'https://cdn.discordapp.com/embed/avatars/0.png')
+                            : 'https://cdn.discordapp.com/embed/avatars/0.png'
+                        }
+                        alt="Album Art"
+                        className="w-12 h-12 rounded-lg shadow-lg object-cover border border-white/5"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Music size={14} className="text-green-400" />
+                        <span className="text-[10px] uppercase font-bold text-green-400 tracking-wider">
+                          Listening
+                        </span>
+                      </div>
+                      <p className="font-semibold text-sm text-white truncate leading-tight">{spotifyActivity.details || spotifyActivity.name}</p>
+                      <p className="text-xs text-white/60 truncate italic">{spotifyActivity.state || ''}</p>
+                    </div>
+                  </div>
+                )
               )}
 
+              {/* Discord status fallback */}
               {!showSpotify && (
                 <p className="text-xs text-white/50 truncate capitalize">
                   {discord_status === "dnd" ? "Do Not Disturb" : discord_status}
@@ -98,20 +152,6 @@ export function DiscordWidget({ config, spotifyConfig }: DiscordWidgetProps) {
               )}
             </div>
           </div>
-
-          {/* Album Art on the right */}
-          {showSpotify && spotifyActivity && (
-            <div className="shrink-0 ml-3 relative">
-              <img 
-                src={spotifyActivity.album_art_url || (spotifyActivity.assets?.large_image ? (spotifyActivity.assets.large_image.startsWith("spotify:") ? `https://i.scdn.co/image/${spotifyActivity.assets.large_image.split(":")[1]}` : (spotifyActivity.assets.large_image.startsWith("mp:external") ? spotifyActivity.assets.large_image.replace("mp:external/", "https://media.discordapp.net/external/") : `https://cdn.discordapp.com/app-assets/${spotifyActivity.application_id}/${spotifyActivity.assets.large_image}.png`)) : "")} 
-                alt="Art"
-                className="w-12 h-12 rounded-xl shadow-2xl object-cover border border-white/5"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png";
-                }}
-              />
-            </div>
-          )}
         </motion.div>
       )}
 

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { getEnvProfile } from "./env-profile";
 import { api } from "@shared/routes";
 
 export async function registerRoutes(
@@ -9,7 +9,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   
   app.get(api.profile.get.path, async (_req, res) => {
-    const profile = await storage.getProfile();
+    const profile = getEnvProfile();
     if (!profile) {
       return res.status(404).json({ message: "Profile not found" });
     }
@@ -26,7 +26,7 @@ async function seedDatabase() {
   // const existingProfile = await storage.getProfile();
   //
   // const profileData = {
-  //   username: "E F T I",
+  //   USERNAME: "E F T ",
   //     // Database logic removed for static site. No database required.
   //   pronouns: "",
   //   banner: "/assets/profilebanner.jpg",

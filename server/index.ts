@@ -88,6 +88,13 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-})();
+
+// Start the server after routes and middleware are set up
+})().then(() => {
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+  httpServer.listen(PORT, () => {
+    log(`Server running on http://localhost:${PORT}`);
+  });
+});
 
 export default app;
